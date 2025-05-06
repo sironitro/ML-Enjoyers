@@ -30,7 +30,7 @@ class AlternatingLeastSquares(Model):
             .getOrCreate()
         
         
-    def training(self, train_df):
+    def train_model(self, train_df):
         if os.path.exists(f"models/{self.name}") and os.path.isdir(f"models/{self.name}"):
             print(f"model has already been exported models/{self.name}")
             print("Skipping trainig ...")

@@ -72,7 +72,7 @@ class BFM(Model):
         return block_scientist, block_paper
 
 
-    def training(self, train_df):
+    def train_model(self, train_df):
         X_train = self.ohe.fit_transform(train_df[['sid', 'pid']])
         y_train = train_df.rating.values
         

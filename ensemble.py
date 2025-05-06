@@ -3,60 +3,58 @@ from bfm import BFM
 from svdpp import SVDpp
 from neuMF import neuMF
 from utils import *
+from sklearn.linear_model import Ridge
+    
+class Ensemble():
+    def __init__(self):
+        self.train_df, self.valid_df, self.implicit_df = read_data_df(random_state=42)
+        self.scientist2wishlist = read_wishlist_dict()
+        self.scientist2papers = self.train_df.groupby("sid")["pid"].apply(list).to_dict()
+        self.global_mean = torch.tensor(np.mean(self.train_df.rating.values), dtype=torch.float32)
+        self.models = [
+            SVDpp.load("svdpp", self.scientist2papers, self.scientist2wishlist, self.global_mean),
+            AlternatingLeastSquares.load("als"),
+            BFM.load("bfm"),
+            BFM.load("bfm_impl"),
+            BFM.load("bfm_impl_or"),
+            BFM.load("bfm_or"),
+            neuMF.load("neuMF")
+        ]
+        self.meta_model = Ridge(alpha=1.0)
 
-# class Ensemble():
-#     self.models
+    def get_model_predictions(self) -> tuple[np.ndarray, np.ndarray]:
+        print("getting model predictions ...")
+        sids = self.valid_df['sid'].to_numpy()
+        pids = self.valid_df['pid'].to_numpy()
+        preds = [model.predict(sids, pids) for model in self.models]
+        return np.stack(preds, axis=1)
+    
+    
+    def fit(self):
+        X_val = self.get_model_predictions()
+        y_val = self.valid_df['rating']
+        print("fitting meta model ...")
+        self.meta_model.fit(X_val, y_val)
+    
+    
+    def predict(self, sids: np.ndarray, pids: np.ndarray) -> np.ndarray:
+        print("predicting ...")
+        preds = [model.predict(sids, pids) for model in self.models]
+        X = np.stack(preds, axis=1)
+        return self.meta_model.predict(X)
+    
+    
+    def get_weights(self):
+        """Returns the learned weights for each base model"""
+        return self.meta_model.coef_, self.meta_model.intercept_
     
     
 if __name__ == '__main__':
     train_df, valid_df, implicit_df = read_data_df(random_state=42)
-    # als_model = AlternatingLeastSquares("als", 300, 32)
-    # als_model.train(train_df)
-    # print(evaluate(valid_df, als_model.predict))
-    # als_model.export()
-    
-    
-    
-    # loaded_model = AlternatingLeastSquares.load("als")
-    # print(evaluate(valid_df, loaded_model.predict))
-    
-    # name="bfm_or"
-    # bfm_model = BFM(
-    #     name=name,
-    #     n_iter=300,
-    #     rank=32,
-    #     implicit_df=None,
-    #     ordinal=True
-    # )
-    # bfm_model.training(train_df)
-    
-        
-    
-    # print(evaluate(valid_df, bfm_model.predict))
-    # bfm_model.export()
-    # loaded_model = BFM.load(name)
-    # print(evaluate(valid_df, loaded_model.predict))
-    
-    # scientist2wishlist = read_wishlist_dict()
-    # scientist2papers = train_df.groupby("sid")["pid"].apply(list).to_dict()
-    # global_mean = torch.tensor(np.mean(train_df.rating.values), dtype=torch.float32)
-    # svdpp_model = SVDpp(name="svdpp", epochs=1, s2p=scientist2papers, s2w=scientist2wishlist, global_mean=global_mean)
-    # svdpp_model.train_model(train_df, valid_df)
-    # print(evaluate(valid_df, svdpp_model.predict))
-    # svdpp_model.export()
-    
-    # loaded_model = SVDpp.load("svdpp", scientist2papers, scientist2wishlist, global_mean)
-    # print(evaluate(valid_df, loaded_model.predict))
-    name="neuMF"
-    neuMF_model = neuMF(
-        name=name,
-        epochs=1
-    )
-    neuMF_model.train_model(
-        train_df,
-        valid_df
-    )
-    print(evaluate(valid_df, neuMF_model.predict))
-    neuMF_model.export()
-    loaded_model = neuMF.load(name, 64, [128, 64, 32], dropout=0.3)
-    print(evaluate(valid_df, loaded_model.predict))
+    # model = neuMF("neuMF", epochs=1)
+    # model.train_model(train_df, valid_df)
+    # model.export()
+    ensemble = Ensemble()
+    ensemble.fit()
+    print(evaluate(valid_df, ensemble.predict))
+    make_submission(ensemble.predict, 'my_learned_ensemble_submission.csv')

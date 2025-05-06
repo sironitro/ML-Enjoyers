@@ -15,7 +15,7 @@ np.random.seed(SEED)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class neuMF(Model, nn.Module):
-    def __init__(self, name, num_users=10_000, num_items=1_000, mf_dim=64, epochs=300, mlp_layer_sizes=[128,64,32], dropout=0.3):
+    def __init__(self, name, num_users=10_000, num_items=10_000, mf_dim=64, epochs=300, mlp_layer_sizes=[128,64,32], dropout=0.3):
         nn.Module.__init__(self)
         self.to(device)
         self.name = name
@@ -160,7 +160,7 @@ class neuMF(Model, nn.Module):
         print(f"Model and metadata exported to {file_path}")
     
     @classmethod
-    def load(cls, name, mf_dim, mlp_layer_sizes, dropout):
+    def load(cls, name, mf_dim=64, mlp_layer_sizes=[128,64,32], dropout=0.3):
         path = os.path.join("models", name + ".pth")
 
         model = neuMF(
@@ -171,5 +171,5 @@ class neuMF(Model, nn.Module):
         )
         model.load_state_dict(torch.load(path))
 
-        print(f"Loaded SVDpp model and metadata from {path}")
+        print(f"Loaded NeuMF model and metadata from {path}")
         return model
