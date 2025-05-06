@@ -3,7 +3,8 @@ from bfm import BFM
 from svdpp import SVDpp
 from neuMF import neuMF
 from utils import *
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, LinearRegression
+
     
 class Ensemble():
     def __init__(self):
@@ -48,13 +49,12 @@ class Ensemble():
         """Returns the learned weights for each base model"""
         return self.meta_model.coef_, self.meta_model.intercept_
     
+    def get_individual_submissions(self):
+        for model in self.models:
+            make_submission(model.predict, f"submissions/{model.name}_submission.csv")
+    
     
 if __name__ == '__main__':
-    train_df, valid_df, implicit_df = read_data_df(random_state=42)
-    # model = neuMF("neuMF", epochs=1)
-    # model.train_model(train_df, valid_df)
-    # model.export()
     ensemble = Ensemble()
     ensemble.fit()
-    print(evaluate(valid_df, ensemble.predict))
-    make_submission(ensemble.predict, 'my_learned_ensemble_submission.csv')
+    make_submission(ensemble.predict, 'submissions/ensemble_submission.csv')
