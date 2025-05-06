@@ -1,5 +1,6 @@
 from typing import Tuple, Callable
 import os
+import torch
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -64,3 +65,19 @@ def make_submission(pred_fn: Callable[[np.ndarray, np.ndarray], np.ndarray], fil
     
     df["rating"] = pred_fn(sids, pids)
     df.to_csv(filename, index=False)
+    
+    
+def get_dataset(df: pd.DataFrame) -> torch.utils.data.Dataset:
+    """Conversion from pandas data frame to torch dataset."""
+    sids = torch.from_numpy(df["sid"].to_numpy())
+    pids = torch.from_numpy(df["pid"].to_numpy())
+    ratings = torch.from_numpy(df["rating"].to_numpy()).float()
+    return torch.utils.data.TensorDataset(sids, pids, ratings)
+
+
+def read_wishlist_dict() -> dict:
+    wishlist = pd.read_csv(os.path.join(DATA_DIR, "train_tbr.csv"))
+    wishlist["sid"] = wishlist["sid"].astype(int)
+    wishlist["pid"] = wishlist["pid"].astype(int)
+    scientist2wishlist = wishlist.groupby("sid")["pid"].apply(list).to_dict()
+    return scientist2wishlist

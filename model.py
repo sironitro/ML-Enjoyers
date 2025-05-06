@@ -9,7 +9,7 @@ class Model(ABC):
         
     
     @abstractmethod
-    def train(self):
+    def train_model(self):
         pass
     
     @abstractmethod
