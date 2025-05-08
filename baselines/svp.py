@@ -77,7 +77,7 @@ def svp_predict(sids: np.ndarray, pids: np.ndarray) -> np.ndarray:
     return np.array(preds)
 
 
-# Get train and validation data and setup data loaders
+# Get train and validation data
 train_df, valid_df, _ = read_data_df()
 train_mat = read_data_matrix(train_df)
 
