@@ -19,7 +19,7 @@ class SVDpp(Model, nn.Module):
     Incorporates both explicit and implicit feedback from scientists
     and papers, including wishlist behavior.
     """
-    def __init__(self, name: str = "svdpp", epochs = 300, num_scientists: int = 10000, num_papers: int = 10000, emb_dim: int = 64, s2p: dict = dict(), s2w: dict = dict(), global_mean: torch.float32 = 3.82):
+    def __init__(self, name: str = "svdpp", epochs = 300, num_scientists: int = 10000, num_papers: int = 1000, emb_dim: int = 64, s2p: dict = dict(), s2w: dict = dict(), global_mean: torch.float32 = 3.82):
         """
         Initializes model parameters and embeddings for users, items, and implicit feedback.
 
