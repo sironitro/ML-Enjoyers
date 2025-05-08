@@ -20,7 +20,7 @@ class neuMF(Model, nn.Module):
     and a Multi-Layer Perceptron (MLP) into a unified architecture (NeuMF).
     The GMF captures linear latent interactions, while the MLP learns complex, nonlinear user-item relationships.
     """
-    def __init__(self, name, num_users=10_000, num_items=10_000, mf_dim=64, epochs=300, mlp_layer_sizes=[128,64,32], dropout=0.3):
+    def __init__(self, name, num_users=10_000, num_items=1_000, mf_dim=64, epochs=300, mlp_layer_sizes=[128,64,32], dropout=0.3):
         """
         Initializes the NeuMF model architecture.
 
