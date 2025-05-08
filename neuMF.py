@@ -6,19 +6,38 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+
+
 SEED = 42
 torch.manual_seed(SEED)
 np.random.seed(SEED)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 class neuMF(Model, nn.Module):
+    """
+    Implementation of Neural Collaborative Filtering (NCF), combining Generalized Matrix Factorization (GMF)
+    and a Multi-Layer Perceptron (MLP) into a unified architecture (NeuMF).
+    The GMF captures linear latent interactions, while the MLP learns complex, nonlinear user-item relationships.
+    """
     def __init__(self, name, num_users=10_000, num_items=10_000, mf_dim=64, epochs=300, mlp_layer_sizes=[128,64,32], dropout=0.3):
+        """
+        Initializes the NeuMF model architecture.
+
+        Input:
+            name (str): Name of the model instance.
+            num_users (int): Number of user IDs.
+            num_items (int): Number of item IDs.
+            mf_dim (int): Dimensionality of the GMF embeddings.
+            epochs (int): Number of training epochs.
+            mlp_layer_sizes (list): List of MLP layer sizes.
+            dropout (float): Dropout rate used in MLP layers.
+        """
         nn.Module.__init__(self)
         self.to(device)
         self.name = name
         self.epochs = epochs
-        
+        # GMF embeddings
         self.user_gmf = nn.Embedding(num_users, mf_dim)
         self.item_gmf = nn.Embedding(num_items, mf_dim)
         # MLP embeddings
@@ -41,9 +60,11 @@ class neuMF(Model, nn.Module):
           ]
           in_size = out_size
         self.mlp = nn.Sequential(*mlp_layers)
+
+        # Combining GMF and MLP outputs into prediction head
         self.head = nn.Linear(mf_dim + mlp_layer_sizes[-1], 1)
         
-        # Initialization
+        # Init weights
         nn.init.normal_(self.user_gmf.weight, std=0.01)
         nn.init.normal_(self.item_gmf.weight, std=0.01)
         nn.init.normal_(self.user_mlp.weight, std=0.01)
@@ -57,38 +78,63 @@ class neuMF(Model, nn.Module):
         
         
     def forward(self, u, i):
+        """
+        Forward pass to compute predicted ratings.
+
+        Input:
+            u (Tensor): Tensor of user IDs.
+            i (Tensor): Tensor of item IDs.
+
+        Outputs:
+            Tensor: Predicted ratings.
+        """
         # GMF path
         gmf = self.user_gmf(u) * self.item_gmf(i)
+
         # MLP path
         mlp = self.mlp(torch.cat([self.user_mlp(u), self.item_mlp(i)], dim=1))
+
         # Combine paths
         x = torch.cat([gmf, mlp], dim=1)
         base_pred = self.head(x).squeeze()
+
         # Add bias terms
         u_bias = self.user_bias(u).squeeze()
         i_bias = self.item_bias(i).squeeze()
+
         return base_pred + u_bias + i_bias
     
 
     def train_model(self, train_df, valid_df, lr=6e-4, weight_decay=4e-5, patience=5):
+        """
+        Trains the NeuMF model using MSE loss and early stopping on validation RMSE.
+
+        Input:
+            train_df (DataFrame): Training data (sid, pid, rating).
+            valid_df (DataFrame): Validation data (sid, pid, rating).
+            lr (float): Learning rate for Adam optimizer.
+            weight_decay (float): Weight decay (L2 regularization).
+            patience (int): Early stopping patience (in epochs).
+        """
         self.to(device)
         best_rmse = float('inf')
+
+        # Convert dataframes to PyTorch datasets and setup data loaders
         train_dataset = get_dataset(train_df)
         valid_dataset = get_dataset(valid_df)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
         valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=64, shuffle=True)
 
-        optim = torch.optim.Adam(
-            self.parameters(),
-            lr=lr,
-            weight_decay=weight_decay
-        )
+        # Set up Adam optimizer
+        optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
+
+        # Training loop
         for epoch in range(self.epochs):
-            # Training step
+            # Train model for an epoch
             total_loss = 0
             total_data = 0
             self.train()
-
+            # Loop over training batches
             for sid, pid, ratings in train_loader:
                 sid = sid.to(device)
                 pid = pid.to(device)
@@ -103,7 +149,6 @@ class neuMF(Model, nn.Module):
 
                 total_data += len(sid)
                 total_loss += len(sid) * loss.item()
-
 
             # Evaluate on validation set
             total_val_mse = 0.0
@@ -135,14 +180,22 @@ class neuMF(Model, nn.Module):
             if epochs_no_improve >= patience:
                 print(f"Stopped early at epoch {epoch+1}. Best RMSE: {best_rmse:.4f}")
                 break
-
-
-            self.load_state_dict(best_model_state)
-
-
+            
+        # Load best model back
+        self.load_state_dict(best_model_state)
 
 
     def predict(self, sids: np.ndarray, pids: np.ndarray):
+        """
+        Predicts ratings for the given arrays of user and item IDs.
+
+        Input:
+            sids (np.ndarray): Array of scientist IDs.
+            pids (np.ndarray): Array of paper IDs.
+
+        Outputs:
+            np.ndarray: Predicted ratings clipped to [1, 5].
+        """
         self.eval()
         self.to(device)
         with torch.no_grad():
@@ -152,13 +205,30 @@ class neuMF(Model, nn.Module):
             )
         return ratings.clamp(1, 5).cpu().numpy()
     
+
     def export(self):
+        """
+        Saves the model's learned weights to a file.
+        """
         file_path = os.path.join("models", self.name + ".pth")
         torch.save(self.state_dict(), file_path)
         print(f"Model and metadata exported to {file_path}")
     
+
     @classmethod
     def load(cls, name, mf_dim=64, mlp_layer_sizes=[128,64,32], dropout=0.3):
+        """
+        Loads a saved NeuMF model from disk.
+
+        Input:
+            name (str): Name of the model file (without extension).
+            mf_dim (int): GMF embedding dimension (used to reconstruct model).
+            mlp_layer_sizes (list): MLP layer sizes.
+            dropout (float): Dropout rate used in MLP.
+
+        Output:
+            neuMF: Loaded model instance.
+        """
         path = os.path.join("models", name + ".pth")
 
         model = neuMF(

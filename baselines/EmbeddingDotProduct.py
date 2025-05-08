@@ -9,10 +9,12 @@ from utils import *
 import copy
 
 
+
 SEED = 42
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class EmbeddingDotProductModel(nn.Module):
     """

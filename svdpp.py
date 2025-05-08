@@ -18,8 +18,6 @@ class SVDpp(Model, nn.Module):
     Implementation of the SVD++ algorithm for collaborative filtering.
     Incorporates both explicit and implicit feedback from scientists
     and papers, including wishlist behavior.
-
-    Inherits from both Model (custom abstract base class) and PyTorch's nn.Module.
     """
     def __init__(self, name: str = "svdpp", epochs = 300, num_scientists: int = 10000, num_papers: int = 10000, emb_dim: int = 64, s2p: dict = dict(), s2w: dict = dict(), global_mean: torch.float32 = 3.82):
         """
@@ -43,7 +41,7 @@ class SVDpp(Model, nn.Module):
         self.epochs = epochs
         self.global_mean = global_mean
 
-        # embeddings for scientists and papers
+        # Embeddings for scientists and papers
         self.scientist_factors = nn.Embedding(num_scientists, emb_dim)
         self.paper_factors = nn.Embedding(num_papers, emb_dim)
         self.scientist_bias = nn.Embedding(num_scientists, 1)
@@ -51,10 +49,10 @@ class SVDpp(Model, nn.Module):
         self.implicit_factors = nn.Embedding(num_papers, emb_dim)
         self.implicit_wishlist = nn.Embedding(num_papers, emb_dim)
 
-        # global average rating
+        # Global average rating
         self.global_bias = nn.Parameter(torch.tensor([global_mean]), requires_grad=False)
 
-        # init weights
+        # Init weights
         nn.init.normal_(self.scientist_factors.weight, std=0.1)
         nn.init.normal_(self.paper_factors.weight, std=0.1)
         nn.init.normal_(self.implicit_factors.weight, std=0.1)
@@ -74,16 +72,16 @@ class SVDpp(Model, nn.Module):
         Outputs:
             Tensor: Predicted ratings.
         """
-        # latent factors and biases for current batch
+        # Latent factors and biases for current batch
         scientist_embeddings = self.scientist_factors(scientist_ids)
         paper_embeddings = self.paper_factors(paper_ids)
-        # squeeze to remove extra dim
+        # Squeeze to remove extra dim
         scientist_biases = self.scientist_bias(scientist_ids).squeeze()
         paper_biases = self.paper_bias(paper_ids).squeeze()
 
         papers = [self.s2p.get(k, []) for k in scientist_ids]
 
-        # implicit feedback from rated papers
+        # Compute Implicit feedback from rated papers
         implicit_embeds = []
         for sp in papers:
             if len(sp) > 0:
@@ -96,7 +94,7 @@ class SVDpp(Model, nn.Module):
         y_u = torch.stack(implicit_embeds)
 
 
-        # implicit feedback from wishlist papers
+        # Compute Implicit feedback from wishlist papers
         wishlist = [self.s2w.get(k, []) for k in scientist_ids]
 
         implicit_embeds_wl = []
@@ -110,11 +108,12 @@ class SVDpp(Model, nn.Module):
             implicit_embeds_wl.append(norm_yj_wl)
         y_u_wl = torch.stack(implicit_embeds_wl)
 
-        # combine explicit and implicit interactions
+        # Combine explicit and implicit interactions
         interaction = ((scientist_embeddings + y_u + y_u_wl)  * paper_embeddings).sum(dim=1)
 
-        # predict ratings
+        # Predict ratings
         predicted_ratings = interaction + scientist_biases + paper_biases + self.global_bias
+
         return predicted_ratings
 
 
@@ -128,10 +127,9 @@ class SVDpp(Model, nn.Module):
             train_df (DataFrame): Training data (sid, pid, rating).
             valid_df (DataFrame): Validation data (sid, pid, rating).
         """
-        # get datasets and set up data loader
+        # Convert dataframes to PyTorch datasets and setup data loaders
         train_dataset = get_dataset(train_df)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
-
         valid_dataset = get_dataset(valid_df)
         valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=64, shuffle=False)
         
@@ -140,15 +138,17 @@ class SVDpp(Model, nn.Module):
         epochs_no_improve = 0
         best_model_state = None
         model = self.to(device)
-        # init Adam optimizer
+        
+        # Set up Adam optimizer
         optim = torch.optim.Adam(model.parameters(), lr=6e-4, weight_decay=4e-5)
 
-        # training loop
+        # Training loop
         for epoch in range(self.epochs):
             # Train model for an epoch
             total_loss = 0.0
             total_data = 0
             model.train()
+            # Loop over training batches
             for sid, pid, ratings in train_loader:
                 sid = sid.to(device)
                 pid = pid.to(device)
@@ -195,7 +195,7 @@ class SVDpp(Model, nn.Module):
                 print(f"Stopped early at epoch {epoch+1}. Best RMSE: {best_rmse:.4f}")
                 break
 
-        # load best model back
+        # Load best model back
         model.load_state_dict(best_model_state)
 
     def export(self):

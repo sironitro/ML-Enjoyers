@@ -6,11 +6,24 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import root_mean_squared_error
 
+
+
 DATA_DIR = "./data"
 
 
 def read_data_df(random_state=None) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Reads in data and splits it into training and validation sets with a 75/25 split."""
+    """
+    Reads in data and splits it into training and validation sets with a 75/25 split.
+
+    Input:
+        random_state (int or None): Seed for reproducibility.
+
+    Outputs:
+        Tuple:
+            - train_df: DataFrame with training ratings.
+            - valid_df: DataFrame with validation ratings.
+            - implicit_df: DataFrame with implicit wishlist interactions.
+    """
     
     df = pd.read_csv(os.path.join(DATA_DIR, "train_ratings.csv"))
     implicit_df = pd.read_csv(os.path.join(DATA_DIR, "train_tbr.csv"))
@@ -27,19 +40,31 @@ def read_data_df(random_state=None) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def read_data_matrix(df: pd.DataFrame) -> np.ndarray:
-    """Returns matrix view of the training data, where columns are scientists (sid) and
-    rows are papers (pid)."""
+    """
+    Returns matrix view of the training data, where columns are scientists (sid) and
+    rows are papers (pid).
+
+    Input:
+        df (pd.DataFrame): DataFrame containing columns "sid", "pid", and "rating".
+
+    Outputs:
+        np.ndarray: A matrix with shape (num_sids, num_pids) where each entry [i, j]
+                represents the rating by scientist i for paper j. Missing entries are NaN.
+    """
 
     return df.pivot(index="sid", columns="pid", values="rating").values
 
 
 def evaluate(valid_df: pd.DataFrame, pred_fn: Callable[[np.ndarray, np.ndarray], np.ndarray]) -> float:
     """
+    Evaluates a prediction function on a validation DataFrame using Root Mean Squared Error (RMSE).
+
     Inputs:
         valid_df: Validation data, returned from read_data_df for example.
         pred_fn: Function that takes in arrays of sid and pid and outputs their rating predictions.
 
-    Outputs: Validation RMSE
+    Outputs: 
+        float: Validation RMSE
     """
     
     preds = pred_fn(valid_df["sid"].values, valid_df["pid"].values)
@@ -68,7 +93,16 @@ def make_submission(pred_fn: Callable[[np.ndarray, np.ndarray], np.ndarray], fil
     
     
 def get_dataset(df: pd.DataFrame) -> torch.utils.data.Dataset:
-    """Conversion from pandas data frame to torch dataset."""
+    """
+    Converts a pandas DataFrame into a PyTorch TensorDataset.
+
+    Input:
+        df (pd.DataFrame): DataFrame containing user IDs ("sid"), item IDs ("pid"),
+                       and ratings ("rating").
+
+    Outputs:
+        torch.utils.data.Dataset: A TensorDataset where each element is (sid, pid, rating).
+    """
     sids = torch.from_numpy(df["sid"].to_numpy())
     pids = torch.from_numpy(df["pid"].to_numpy())
     ratings = torch.from_numpy(df["rating"].to_numpy()).float()
@@ -76,6 +110,13 @@ def get_dataset(df: pd.DataFrame) -> torch.utils.data.Dataset:
 
 
 def read_wishlist_dict() -> dict:
+    """
+    Reads the wishlist CSV file and returns a mapping from scientist IDs to
+    a list of paper IDs in their wishlist.
+
+    Outputs:
+        dict: Dictionary mapping each "sid" to a list of "pid" entries (wishlist papers).
+    """
     wishlist = pd.read_csv(os.path.join(DATA_DIR, "train_tbr.csv"))
     wishlist["sid"] = wishlist["sid"].astype(int)
     wishlist["pid"] = wishlist["pid"].astype(int)

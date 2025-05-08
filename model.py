@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
 
+
+
 class Model(ABC):
     """
     An abstract class for our models in the ensemble.

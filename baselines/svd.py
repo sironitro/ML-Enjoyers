@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from utils import *
 
 
+
 SEED = 42
 torch.manual_seed(SEED)
 np.random.seed(SEED)
