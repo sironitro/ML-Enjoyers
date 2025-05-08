@@ -52,7 +52,7 @@ if __name__ == '__main__':
     name="neuMF"
     neuMF_model = neuMF(
         name=name,
-        epochs=1
+        epochs=300
     )
     neuMF_model.train_model(
         train_df,
