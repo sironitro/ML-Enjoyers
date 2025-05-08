@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from utils import *
 import copy
 
