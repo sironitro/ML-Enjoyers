@@ -11,8 +11,8 @@ class Model(ABC):
         """
         Initializes the model with a name and sets the trained flag to False.
 
-        Parameters:
-        name (str): A unique identifier for the model instance.
+        Input:
+            name (str): A unique identifier for the model instance.
         """
         self.name = name
         self.trained = False
@@ -38,8 +38,8 @@ class Model(ABC):
         """
         Loads a previously exported model from disk.
 
-        Returns:
-        Model: An instance of a subclass of Model with loaded parameters.
+        Outputs:
+            Model: An instance of a subclass of Model with loaded parameters.
         """
         pass
     
@@ -48,12 +48,12 @@ class Model(ABC):
         """
         Makes predictions for the given arrays of scientist and paper IDs.
 
-        Parameters:
-        sids (np.ndarray): An array of scientist identifiers.
-        pids (np.ndarray): An array of paper identifiers.
+        Input:
+            sids (np.ndarray): An array of scientist identifiers.
+            pids (np.ndarray): An array of paper identifiers.
 
-        Returns:
-        np.ndarray: An array of predicted values.
+        Outputs:
+            np.ndarray: An array of predicted values.
         """
         pass
     

@@ -25,15 +25,15 @@ class SVDpp(Model, nn.Module):
         """
         Initializes model parameters and embeddings for users, items, and implicit feedback.
 
-        Parameters:
-        name (str): Name of the model instance.
-        epochs (int): Number of training epochs.
-        num_scientists (int): Total number of scientists.
-        num_papers (int): Total number of papers.
-        emb_dim (int): Dimensionality of latent embeddings.
-        s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
-        s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
-        global_mean (float): Global mean rating used for prediction.
+        Input:
+            name (str): Name of the model instance.
+            epochs (int): Number of training epochs.
+            num_scientists (int): Total number of scientists.
+            num_papers (int): Total number of papers.
+            emb_dim (int): Dimensionality of latent embeddings.
+            s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
+            s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
+            global_mean (float): Global mean rating used for prediction.
         """
         nn.Module.__init__(self)
         self.name = name
@@ -67,12 +67,12 @@ class SVDpp(Model, nn.Module):
         """
         Computes the predicted ratings for given scientist-paper pairs.
 
-        Parameters:
-        scientist_ids (Tensor): Tensor of scientist IDs.
-        paper_ids (Tensor): Tensor of paper IDs.
+        Input:
+            scientist_ids (Tensor): Tensor of scientist IDs.
+            paper_ids (Tensor): Tensor of paper IDs.
 
-        Returns:
-        Tensor: Predicted ratings.
+        Outputs:
+            Tensor: Predicted ratings.
         """
         # latent factors and biases for current batch
         scientist_embeddings = self.scientist_factors(scientist_ids)
@@ -124,9 +124,9 @@ class SVDpp(Model, nn.Module):
         Trains the SVD++ model using training and validation datasets.
         Uses early stopping based on RMSE on validation data.
 
-        Parameters:
-        train_df (DataFrame): Training data (sid, pid, rating).
-        valid_df (DataFrame): Validation data (sid, pid, rating).
+        Input:
+            train_df (DataFrame): Training data (sid, pid, rating).
+            valid_df (DataFrame): Validation data (sid, pid, rating).
         """
         # get datasets and set up data loader
         train_dataset = get_dataset(train_df)
@@ -211,12 +211,12 @@ class SVDpp(Model, nn.Module):
         """
         Makes predictions for the given arrays of scientist and paper IDs.
 
-        Parameters:
-        sids (np.ndarray): Array of scientist IDs.
-        pids (np.ndarray): Array of paper IDs.
+        Input:
+            sids (np.ndarray): Array of scientist IDs.
+            pids (np.ndarray): Array of paper IDs.
 
-        Returns:
-        np.ndarray: Array of predicted ratings.
+        Outputs:
+            np.ndarray: Array of predicted ratings.
         """
         self.to(device)
         with torch.no_grad():
@@ -231,14 +231,14 @@ class SVDpp(Model, nn.Module):
         """
         Loads a saved SVDpp model from disk.
 
-        Parameters:
-        name (str): Name of the model file (without extension).
-        s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
-        s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
-        global_mean (float): Global mean rating to reinitialize the model.
+        Input:
+            name (str): Name of the model file (without extension).
+            s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
+            s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
+            global_mean (float): Global mean rating to reinitialize the model.
 
-        Returns:
-        SVDpp: An instance of the SVDpp model with loaded weights.
+        Outputs:
+            SVDpp: An instance of the SVDpp model with loaded weights.
         """
         path = os.path.join("models", name + ".pth")
 
