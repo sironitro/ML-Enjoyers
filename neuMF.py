@@ -3,10 +3,8 @@ from model import Model
 from utils import *
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
 
 SEED = 42
 torch.manual_seed(SEED)

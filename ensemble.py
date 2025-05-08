@@ -5,6 +5,10 @@ from neuMF import neuMF
 from utils import *
 from sklearn.linear_model import Ridge, LinearRegression
 
+
+import os
+
+
     
 class Ensemble():
     def __init__(self):
@@ -58,3 +62,4 @@ if __name__ == '__main__':
     ensemble = Ensemble()
     ensemble.fit()
     make_submission(ensemble.predict, 'submissions/ensemble_submission.csv')
+    

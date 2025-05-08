@@ -6,7 +6,6 @@ import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.ml.recommendation import ALS
 from pyspark.ml.recommendation import ALSModel
-from pyspark.ml.evaluation import RegressionEvaluator
 
 
 
@@ -28,6 +27,7 @@ class AlternatingLeastSquares(Model):
             .config("spark.driver.extraJavaOptions", "-Xss16m") \
             .config("spark.executor.extraJavaOptions", "-Xss16m") \
             .getOrCreate()
+
         
         
     def train_model(self, train_df):

@@ -14,7 +14,27 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class SVDpp(Model, nn.Module):
+    """
+    Implementation of the SVD++ algorithm for collaborative filtering.
+    Incorporates both explicit and implicit feedback from scientists
+    and papers, including wishlist behavior.
+
+    Inherits from both Model (custom abstract base class) and PyTorch's nn.Module.
+    """
     def __init__(self, name: str = "svdpp", epochs = 300, num_scientists: int = 10000, num_papers: int = 10000, emb_dim: int = 64, s2p: dict = dict(), s2w: dict = dict(), global_mean: torch.float32 = 3.82):
+        """
+        Initializes model parameters and embeddings for users, items, and implicit feedback.
+
+        Parameters:
+        name (str): Name of the model instance.
+        epochs (int): Number of training epochs.
+        num_scientists (int): Total number of scientists.
+        num_papers (int): Total number of papers.
+        emb_dim (int): Dimensionality of latent embeddings.
+        s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
+        s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
+        global_mean (float): Global mean rating used for prediction.
+        """
         nn.Module.__init__(self)
         self.name = name
         self.emb_dim = emb_dim
@@ -44,6 +64,16 @@ class SVDpp(Model, nn.Module):
     
 
     def forward(self, scientist_ids, paper_ids):
+        """
+        Computes the predicted ratings for given scientist-paper pairs.
+
+        Parameters:
+        scientist_ids (Tensor): Tensor of scientist IDs.
+        paper_ids (Tensor): Tensor of paper IDs.
+
+        Returns:
+        Tensor: Predicted ratings.
+        """
         # latent factors and biases for current batch
         scientist_embeddings = self.scientist_factors(scientist_ids)
         paper_embeddings = self.paper_factors(paper_ids)
@@ -80,6 +110,7 @@ class SVDpp(Model, nn.Module):
             implicit_embeds_wl.append(norm_yj_wl)
         y_u_wl = torch.stack(implicit_embeds_wl)
 
+        # combine explicit and implicit interactions
         interaction = ((scientist_embeddings + y_u + y_u_wl)  * paper_embeddings).sum(dim=1)
 
         # predict ratings
@@ -89,6 +120,15 @@ class SVDpp(Model, nn.Module):
 
         
     def train_model(self, train_df, valid_df):
+        """
+        Trains the SVD++ model using training and validation datasets.
+        Uses early stopping based on RMSE on validation data.
+
+        Parameters:
+        train_df (DataFrame): Training data (sid, pid, rating).
+        valid_df (DataFrame): Validation data (sid, pid, rating).
+        """
+        # get datasets and set up data loader
         train_dataset = get_dataset(train_df)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
 
@@ -99,10 +139,11 @@ class SVDpp(Model, nn.Module):
         patience = 2
         epochs_no_improve = 0
         best_model_state = None
-        
         model = self.to(device)
+        # init Adam optimizer
         optim = torch.optim.Adam(model.parameters(), lr=6e-4, weight_decay=4e-5)
 
+        # training loop
         for epoch in range(self.epochs):
             # Train model for an epoch
             total_loss = 0.0
@@ -158,12 +199,25 @@ class SVDpp(Model, nn.Module):
         model.load_state_dict(best_model_state)
 
     def export(self):
+        """
+        Saves the model's learned parameters to a file.
+        """
         file_path = os.path.join("models", self.name + ".pth")
         torch.save(self.state_dict(), file_path)
         print(f"Model and metadata exported to {file_path}")
         
     
     def predict(self, sids: np.ndarray, pids: np.ndarray):
+        """
+        Makes predictions for the given arrays of scientist and paper IDs.
+
+        Parameters:
+        sids (np.ndarray): Array of scientist IDs.
+        pids (np.ndarray): Array of paper IDs.
+
+        Returns:
+        np.ndarray: Array of predicted ratings.
+        """
         self.to(device)
         with torch.no_grad():
             return self.forward(
@@ -174,6 +228,18 @@ class SVDpp(Model, nn.Module):
     
     @classmethod
     def load(cls, name, s2p, s2w, global_mean):
+        """
+        Loads a saved SVDpp model from disk.
+
+        Parameters:
+        name (str): Name of the model file (without extension).
+        s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
+        s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
+        global_mean (float): Global mean rating to reinitialize the model.
+
+        Returns:
+        SVDpp: An instance of the SVDpp model with loaded weights.
+        """
         path = os.path.join("models", name + ".pth")
 
         model = SVDpp(s2p=s2p, s2w=s2w, global_mean=global_mean)

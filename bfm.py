@@ -6,8 +6,7 @@ import pandas as pd
 import numpy as np
 import myfm
 from myfm import RelationBlock
-from sklearn.feature_extraction import DictVectorizer
-from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
 from scipy import sparse as sps
 
 
