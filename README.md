@@ -12,7 +12,7 @@ The dataset consists of two primary sources:
   - `sid`: Scientist ID
   - `pid`: Paper ID
   - `rating`: Integer score from 1 to 5
-  > The dataset includes a total of **10,000 scientists** and **10,000 papers**
+  > This dataset includes a total of **10,000 scientists** and **10,000 papers**
 
 - **`train_tbr.csv`**  
   Contains **implicit feedback** in the form of a "to-be-read" list. These are papers that scientists expressed interest in but haven't rated. Each row has:
@@ -34,7 +34,7 @@ We approached the matrix completion task using a mix of classical and modern rec
 After training the individual models, we combined their predictions using a **stacked ensemble**. Specifically, we used **Ridge regression** as a meta-learner to learn optimal weights to each base model’s output. The ensemble was trained on the validation set predictions and effectively balances the strengths of:
 - ALS’s matrix factorization with global structure
 - SVD++ and BFM’s rich handling of implicit data
-- NeuMF’s ability to model nonlinear interactions
+- NCF's ability to model nonlinear interactions
 
 ### Models
 | Model              | File         | Description |
@@ -43,10 +43,9 @@ After training the individual models, we combined their predictions using a **st
 | **ALS**           | `als.py`     | Alternating Least Squares model using PySpark |
 | **BFM**           | `bfm.py`     | Bayesian Factorization Machines with optional implicit features and ordinal regression |
 | **NeuMF**         | `neuMF.py`   | Neural Collaborative Filtering combining GMF and MLP architectures |
-| **Baselines**     | `baselines/` | Contains simple baseline methods such as VD, SVP, SVT, and embedding dot-product to compare our results to |
+| **Baselines**     | `baselines/` | Contains simple baseline methods such as SVD, SVP, SVT, and embedding dot-product to compare our results to |
 | **Ensemble**      | `ensemble.py`| Ensemble of the models with Ridge regression for improved accuracy |
 
-Contains simple baseline methods such as VD, SVP, SVT, and embedding dot-product to compare our results to
 
 
 ## Project Structure
@@ -78,7 +77,7 @@ pip install -r requirements.txt
 To run ALS (which relies on PySpark), ensure that Java is installed and accessible on your system. Additionally make sure **OpenJDK** is installed, and the `JAVA_HOME` environment variable is correctly set. For detailed installation instructions, refer to the [official PySpark setup guide](https://spark.apache.org/docs/latest/api/python/getting_started/install.html).
 
 
-### Train Models
+### Train Individual Models
 The `training.py` script orchestrates the training and validation of all individual models, including ALS, SVD++, NCF, and the various BFM variants. Each model is trained for 300 epochs and then stored into the `models/` directory for later use in ensembling. Validation is performed using a 75/25 split, and early stopping is applied for the PyTorch-based models (SVD++ and NCF), halting training when no further improvement was observed on the validation set after a specified patience period.
 
 To train and export all models, run:
