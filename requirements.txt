@@ -1,5 +1,7 @@
 torch
 numpy
+pandas
 pyspark
 myfm
 scikit-learn
+scipy
