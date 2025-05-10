@@ -172,7 +172,7 @@ class SVDpp(Model, nn.Module):
                     neg_scores = F.cosine_similarity(user_embeds, neg_item_embeds)
 
                     contrast_loss = self.contrastive_loss(pos_scores, neg_scores)
-                    loss += 0.05 * contrast_loss
+                    loss += 0.2 * contrast_loss
 
                 optim.zero_grad()
                 loss.backward()
