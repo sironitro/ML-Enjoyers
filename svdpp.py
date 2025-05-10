@@ -11,6 +11,7 @@ SEED = 42
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+generator = torch.Generator(device=device).manual_seed(SEED)
 
 
 class SVDpp(Model, nn.Module):
@@ -161,7 +162,7 @@ class SVDpp(Model, nn.Module):
 
                 if self.contrastive_learning:
                     # Contrastive loss
-                    neg_pids = torch.randint(0, 1000, pid.shape, device=device)
+                    neg_pids = torch.randint(0, 1000, pid.shape, device=device, generator=generator)
 
                     user_embeds = model.scientist_factors(sid)
                     pos_item_embeds = model.paper_factors(pid)
