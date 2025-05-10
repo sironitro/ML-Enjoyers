@@ -16,10 +16,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class SVDpp(Model, nn.Module):
     """
     Implementation of the SVD++ algorithm for collaborative filtering.
-    Incorporates both explicit and implicit feedback from scientists
-    and papers, including wishlist behavior.
+    Incorporates both explicit and implicit feedback from scientists and papers, including wishlist behavior. 
+    Optionally supports contrastive learning to improve latent representation 
+    by pushing apart negative item interactions from positive ones.
     """
-    def __init__(self, name: str = "svdpp", epochs = 300, num_scientists: int = 10000, num_papers: int = 1000, emb_dim: int = 64, s2p: dict = dict(), s2w: dict = dict(), global_mean: torch.float32 = 3.82):
+    def __init__(self, name: str = "svdpp", epochs = 300, num_scientists: int = 10000, num_papers: int = 1000, emb_dim: int = 64, s2p: dict = dict(), s2w: dict = dict(), global_mean: torch.float32 = 3.82, contrastive_learning: bool = False):
         """
         Initializes model parameters and embeddings for users, items, and implicit feedback.
 
@@ -32,6 +33,7 @@ class SVDpp(Model, nn.Module):
             s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
             s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
             global_mean (float): Global mean rating used for prediction.
+            contrastive_learning (bool): Whether to apply contrastive learning regularization during training.
         """
         nn.Module.__init__(self)
         self.name = name
@@ -40,6 +42,7 @@ class SVDpp(Model, nn.Module):
         self.s2w = s2w
         self.epochs = epochs
         self.global_mean = global_mean
+        self.contrastive_learning = contrastive_learning # Boolean that activates contrastive learning
 
         # Embeddings for scientists and papers
         self.scientist_factors = nn.Embedding(num_scientists, emb_dim)
@@ -116,7 +119,6 @@ class SVDpp(Model, nn.Module):
 
         return predicted_ratings
 
-
         
     def train_model(self, train_df, valid_df):
         """
@@ -156,6 +158,20 @@ class SVDpp(Model, nn.Module):
 
                 pred = model(sid, pid)
                 loss = F.mse_loss(pred, ratings)
+
+                if self.contrastive_learning:
+                    # Contrastive loss
+                    neg_pids = torch.randint(0, 1000, pid.shape, device=device)
+
+                    user_embeds = model.scientist_factors(sid)
+                    pos_item_embeds = model.paper_factors(pid)
+                    neg_item_embeds = model.paper_factors(neg_pids)
+
+                    pos_scores = F.cosine_similarity(user_embeds, pos_item_embeds)
+                    neg_scores = F.cosine_similarity(user_embeds, neg_item_embeds)
+
+                    contrast_loss = self.contrastive_loss(pos_scores, neg_scores)
+                    loss += 0.05 * contrast_loss
 
                 optim.zero_grad()
                 loss.backward()
@@ -198,6 +214,7 @@ class SVDpp(Model, nn.Module):
         # Load best model back
         model.load_state_dict(best_model_state)
 
+
     def export(self):
         """
         Saves the model's learned parameters to a file.
@@ -225,9 +242,9 @@ class SVDpp(Model, nn.Module):
                 torch.from_numpy(pids).to(device),
             ).clamp(1, 5).cpu().numpy()
     
-    
+
     @classmethod
-    def load(cls, name, s2p, s2w, global_mean):
+    def load(cls, name, s2p, s2w, global_mean, contrastive_learning = False):
         """
         Loads a saved SVDpp model from disk.
 
@@ -236,14 +253,32 @@ class SVDpp(Model, nn.Module):
             s2p (dict): Mapping from scientist ID to papers they rated (implicit feedback).
             s2w (dict): Mapping from scientist ID to papers on their wishlist (additional implicit feedback).
             global_mean (float): Global mean rating to reinitialize the model.
+            contrastive_learning (bool): Whether to apply contrastive learning regularization during training.
 
         Outputs:
             SVDpp: An instance of the SVDpp model with loaded weights.
         """
         path = os.path.join("models", name + ".pth")
 
-        model = SVDpp(s2p=s2p, s2w=s2w, global_mean=global_mean)
+        model = SVDpp(s2p=s2p, s2w=s2w, global_mean=global_mean, contrastive_learning=contrastive_learning)
         model.load_state_dict(torch.load(path))
 
         print(f"Loaded SVDpp model and metadata from {path}")
         return model
+    
+
+    def contrastive_loss(self, pos_scores, neg_scores, margin=1.0):
+        """
+        Computes a contrastive hinge loss to encourage positive item scores to be higher than negative ones.
+
+        Inputs:
+            pos_scores (Tensor): Cosine similarity scores between user and positively interacted item embeddings.
+            neg_scores (Tensor): Cosine similarity scores between user and negatively sampled item embeddings.
+            margin (float): Desired minimum margin between positive and negative scores (default: 1.0).
+
+        Outputs:
+            Tensor: Scalar contrastive loss value.
+        """
+        # Want pos_scores >> neg_scores, so hinge loss on margin
+        loss = F.relu(margin - pos_scores + neg_scores)
+        return loss.mean()

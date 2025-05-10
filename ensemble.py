@@ -14,7 +14,7 @@ class Ensemble():
     and used to make final predictions.
 
     Models included:
-        - SVD++
+        - SVD++ (with and without Contrastive Learning)
         - Alternating Least Squares (ALS)
         - Bayesian Factorization Machines (BFM, with multiple variants)
         - Neural Collaborative Filtering (NCF)
@@ -30,6 +30,7 @@ class Ensemble():
         # Load pre-trained base models
         self.models = [
             SVDpp.load("svdpp", self.scientist2papers, self.scientist2wishlist, self.global_mean),
+            SVDpp.load("svdpp_cl", self.scientist2papers, self.scientist2wishlist, self.global_mean, True),
             AlternatingLeastSquares.load("als"),
             BFM.load("bfm"),
             BFM.load("bfm_impl"),

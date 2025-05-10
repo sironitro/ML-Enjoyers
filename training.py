@@ -47,6 +47,19 @@ if __name__ == '__main__':
     svdpp_model = SVDpp.load("svdpp", scientist2papers, scientist2wishlist, global_mean)
     print(evaluate(valid_df, svdpp_model.predict))
 
+    # SVDpp Model with Contrastive Learning Training
+    # Prepare implicit feedback data and global mean
+    # Initialize and train the SVD++ model with Contrastive Learning
+    svdpp_cl_model = SVDpp(name="svdpp_cl", epochs=300, s2p=scientist2papers, s2w=scientist2wishlist, global_mean=global_mean, contrastive_learning=True)
+    svdpp_cl_model.train_model(train_df, valid_df)
+    # Evaluate on validation set
+    print(evaluate(valid_df, svdpp_cl_model.predict))
+    # Export the trained model to disk
+    svdpp_cl_model.export()
+    # Load the model back from disk and evaluate
+    svdpp_cl_model = SVDpp.load("svdpp_cl", scientist2papers, scientist2wishlist, global_mean, contrastive_learning=True)
+    print(evaluate(valid_df, svdpp_cl_model.predict))
+
     # NCF Model Training
     # Initialize and train the NCF model
     name="neuMF"
