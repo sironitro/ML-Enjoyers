@@ -39,7 +39,7 @@ After training the individual models, we combined their predictions using a **st
 ### Models
 | Model              | File         | Description |
 |-------------------|--------------|-------------|
-| **SVD++**         | `svdpp.py`   | SVD++ model using implicit signals from already rated and wishlisted papers |
+| **SVD++**         | `svdpp.py`   | SVD++ model using implicit signals from already rated and wishlisted papers with optional contrastive learning |
 | **ALS**           | `als.py`     | Alternating Least Squares model using PySpark |
 | **BFM**           | `bfm.py`     | Bayesian Factorization Machines with optional implicit features and ordinal regression |
 | **NeuMF**         | `neuMF.py`   | Neural Collaborative Filtering combining GMF and MLP architectures |
@@ -90,7 +90,7 @@ If the `models/` directory already contains trained models, you can skip the tra
 
 
 ### Create Ensemble and Generate Final Predictions
-The `ensemble.py` script constructs a stacked ensemble that integrates predictions from **ALS**, **SVD++**, **BFM** (in multiple configurations), and **NCF**. To leverage the complementary strengths of these models, we use a **Ridge regression meta-model** that learns optimal weights for combining their outputs, to improve overall prediction accuracy.
+The `ensemble.py` script constructs a stacked ensemble that integrates predictions from **ALS**, **SVD++** (with and without contrastive learning) **BFM** (in multiple configurations), and **NCF**. To leverage the complementary strengths of these models, we use a **Ridge regression meta-model** that learns optimal weights for combining their outputs, to improve overall prediction accuracy.
 
 Once all base models are saved in the `models/` directory, you can generate the final submission by running:
 
